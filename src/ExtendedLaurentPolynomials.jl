@@ -1,4 +1,4 @@
-module ExtLaurentPolynomials
+module ExtendedLaurentPolynomials
 
 using LinearAlgebra
 import Base: (==), (+), (-), (*), (^), (÷), (%), (/), (\)
@@ -70,7 +70,7 @@ Base.one(::Type{Polynomial{T,X}}) where {T,X} = Polynomial(one(T); variable=X)
 
 Returns exponents of Polynomial `p`
 """
-exponent(p::Polynomial) = p.coeffs |> keys |> collect .|> (r -> typeof(r) <: Rational ? r.den == 1 ? r.num : r : r)
+Base.exponent(p::Polynomial) = p.coeffs |> keys |> collect .|> (r -> typeof(r) <: Rational ? r.den == 1 ? r.num : r : r)
 
 """
     degree(p::Polynomial)
@@ -395,5 +395,7 @@ function InvZ(p::Polynomial{T,X}, exponents::AbstractVector{Int}=sort(exponent(p
         exponents
     )
 end
+
+export Polynomial, degree, →, substitute, LaurentDown, LaurentUp, LaurentLeft, LaurentRight, InvZ
 
 end # module ExtLaurentPolynomials
