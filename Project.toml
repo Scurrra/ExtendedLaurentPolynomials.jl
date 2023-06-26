@@ -1,7 +1,10 @@
 name = "ExtLaurentPolynomials"
 uuid = "5e2474f5-3cae-4030-9777-812344505b12"
 authors = ["Scurrra <iscurrra@gmail.com>"]
-version = "0.0.2"
+version = "0.0.3"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [compat]
 julia = "1.7, 1.8, 1.9"
