@@ -1,7 +1,7 @@
 module ExtendedLaurentPolynomials
 
-using LinearAlgebra
-import Base: (==), (+), (-), (*), (^), (÷), (%), (/), (\)
+import LinearAlgebra: gcd
+import Base: (==), (+), (-), (*), (^), (÷), (%), (/), (\), (//)
 
 function unicode_exponent(io, j)
     a = ("⁻", "", "", "⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹")
@@ -24,7 +24,23 @@ end
 """
     Polynomial{T}(coeffs, exponent; variable)
 
-Creates a Polynomial with `coeffs` of type `T`. Supports `Rational` exponents and substitution
+Creates a Polynomial with `coeffs` of type `T`. Supports `Rational` exponents and substitution.
+
+#Examples
+
+```julia
+julia> Polynomial(8)
+8
+
+julia> Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2])
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2
+
+julia> Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2]; variable=:x)
+x^-2 + 2*x^-1 + 3 + 4*x + 5*x^2
+
+julia> Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2]; ϵ=10^(-3))
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2
+```
 """
 struct Polynomial{T,X}
     coeffs::Dict{Number,T}
@@ -68,14 +84,14 @@ Base.one(::Type{Polynomial{T,X}}) where {T,X} = Polynomial(one(T); variable=X)
 """
     exponent(p::Polynomial)
 
-Returns exponents of Polynomial `p`
+Returns exponents of Polynomial `p`.
 """
 Base.exponent(p::Polynomial) = p.coeffs |> keys |> collect .|> (r -> typeof(r) <: Rational ? r.den == 1 ? r.num : r : r)
 
 """
     degree(p::Polynomial)
 
-Computes degree of `p` as difference between maximal and minimal exponent of it 
+Computes degree of `p` as difference between maximal and minimal exponent of it.
 """
 degree(p::Polynomial) = length(p.coeffs) == 0 ? 0 : begin
     ext = extrema(exponent(p))
@@ -170,7 +186,20 @@ end
     substitute(p::Polynomial, expr::Expr)
     (→)(p::Polynomial, expr::Expr)
 
-Substitutes `expr` for `p.variable`. `expr` can be only `√x`, `a*x^b` or `√(a*x^b)`
+Substitutes `expr` for `p.variable`. `expr` can be only `√x`, `a*x^b` or `√(a*x^b)`.
+
+# Examples
+
+```julia
+julia> p = Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2])
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2
+
+julia> substitute(p, :(√x))
+x^-1 + 2*x^⁻¹/₂ + 3 + 4*x^¹/₂ + 5*x
+
+julia> :(√x) → p
+x^-1 + 2*x^⁻¹/₂ + 3 + 4*x^¹/₂ + 5*x
+```
 """
 (→)(variable::Symbol, p::Polynomial) = Polynomial(p, variable)
 function substitute(p::Polynomial{T,X}, expr::Union{Expr,Symbol}) where {T<:Number,X}
@@ -210,7 +239,20 @@ end
     (p::Polynomial)(x::Number)
     (→)(x::Number, p::Polynomial)
 
-Evaluates `p` of `x`
+Evaluates `p` of `x`.
+
+# Examples
+
+```julia
+julia> p = Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2])
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2 
+
+julia> p(2.3)
+39.7086011342155
+
+julia> 2.3 → p
+39.7086011342155
+```
 """
 (p::Polynomial)(x::Number) =
     let exponents = exponent(p), result = zero(x)
@@ -321,7 +363,7 @@ function ÷(left::Polynomial{T1,X}, right::Polynomial{T2,X}) where {T1<:Number,T
     return div, left
 end
 
-(/)(left::Polynomial, right::Polynomial) = ÷(left, right)[1]
+(//)(left::Polynomial, right::Polynomial) = ÷(left, right)[1]
 (%)(left::Polynomial, right::Polynomial) = ÷(left, right)[2]
 
 function /(left::Polynomial{T1,X}, right::T2) where {T1<:Number,T2<:Number,X}
@@ -359,35 +401,90 @@ end
 """
 	LaurentLeft(p::Polynomial)
 
-Shifts polynomial `p` to the left
+Shifts polynomial `p` to the left.
+
+# Examples
+
+```julia
+julia> p = Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2])
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2 
+
+julia> LaurentLeft(p)
+z^-1 + 2 + 3*z + 4*z^2 + 5*z^3 
+```
 """
 LaurentLeft(p::Polynomial{T,X}) where {T,X} = p * Polynomial([1], [1]; variable=X)
 
 """
 	LaurentRight(p::Polynomial)
 
-Shifts polynomial `p` to the right
+Shifts polynomial `p` to the right.
+
+# Examples
+
+```julia
+julia> p = Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2])
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2 
+
+julia> LaurentRight(p)
+z^-3 + 2*z^-2 + 3*z^-1 + 4 + 5*z
+```
 """
 LaurentRight(p::Polynomial{T,X}) where {T,X} = p * Polynomial([1], [-1]; variable=X)
 
 """
 	LaurentUp(p::Polynomial)
 
-Upscales p
+Upscales p.
+
+# Examples
+
+```julia
+julia> p = Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2])
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2 
+
+julia> LaurentUp(p)
+z^-4 + 2*z^-2 + 3 + 4*z^2 + 5*z^4
+```
 """
 LaurentUp(p::Polynomial{T,X}) where {T,X} = :($X^2) → p
 
 """
 	LaurentDown(p::Polynomial)
 
-Downscales p
+Downscales p.
+
+# Examples
+
+```julia
+julia> p = Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2])
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2 
+
+julia> LaurentDown(p)
+z^-1 + 3.0 + 5.0*z
+```
 """
 LaurentDown(p::Polynomial{T,X}) where {T,X} = ((:(√$X) → p) + (:(-1√$X) → p)) / 2
 
 """
 	InvZ(p::Polynomial)
 
-Performs inverse z-transform on polynomial `p` that has only integer exponents
+Performs inverse z-transform on polynomial `p` that has only integer exponents.
+
+# Examples
+
+```julia
+julia> p = Polynomial([1, 2, 3, 4, 5], [-2, -1, 0, 1, 2])
+z^-2 + 2*z^-1 + 3 + 4*z + 5*z^2 
+
+julia> InvZ(p)
+5-element Vector{Int64}:
+ 1
+ 2
+ 3
+ 4
+ 5
+```
 """
 function InvZ(p::Polynomial{T,X}, exponents::AbstractVector{Int}=sort(exponent(p))) where {T,X}
     eltype(exponents) == Int && map(
