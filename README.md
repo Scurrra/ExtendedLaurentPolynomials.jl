@@ -10,7 +10,7 @@ Basic arithmetic, evaluation and substitution for Laurent Polynomials.
 (v1.8) pkg> add ExtendedLaurentPolynomials
 ```
 
-This packege supports Julia 1.8 and later.
+This package supports Julia 1.8 and later.
 
 ## Usage
 
